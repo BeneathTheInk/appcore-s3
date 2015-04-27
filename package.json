@@ -1,6 +1,6 @@
 {
 	"name": "@beneaththeink/appcore-s3",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Amazon S3 file upload for appcore.",
 	"private": true,
 	"main": "s3.js",
