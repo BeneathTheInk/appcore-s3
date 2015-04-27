@@ -4,7 +4,7 @@ var knox = require("knox"),
 	async = require("async"),
 	Promise = require("bluebird"),
 	_ = require("underscore"),
-	utils = require("@beneaththeink/appcore-router/lib/utils");
+	toStream = require('streamifier').createReadStream;
 
 module.exports = function() {
 	var app = this, files;
@@ -33,7 +33,7 @@ module.exports = function() {
 
 		if (typeof data === "string") data = new Buffer(data, "utf-8");
 		if (Buffer.isBuffer(data)) {
-			data = new utils.BufferStream(data);
+			data = toStream(data);
 			if (options.size == null) options.size = data.length;
 		}
 
@@ -46,7 +46,7 @@ module.exports = function() {
 		if (options.meta != null) _.each(options.meta, function(v, k) {
 			headers["x-amz-meta-" + k] = v;
 		});
-			
+
 		return new Promise(function(resolve, reject) {
 			var req = client.putStream(data, filepath, headers, function(err, res) {
 				if (err != null) return reject(err);
