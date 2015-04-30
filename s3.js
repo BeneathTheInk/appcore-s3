@@ -7,27 +7,25 @@ var knox = require("knox"),
 	toStream = require('streamifier').createReadStream;
 
 module.exports = function() {
-	var app = this, files;
-
-	// self awareness
-	while (files == null && app != null) {
-		files = app.files;
-		app = app.parent;
-	}
-
-	if (files) {
-		this.files = files;
-		return;
-	}
+	if (this.uploadToS3) return;
 
 	var knox_opts = this.get("s3");
 	if (!knox_opts) throw new Error("Missing S3 configuration.");
 
-	files = this.files = {};
-	var client = files.knox = knox.createClient(knox_opts);
+	// create a knox client form options
+	var client = knox.createClient(knox_opts);
 
-	// standard upload interface
-	var upload = files.upload = function(data, filepath, options) {
+	// file upload queue so S3 connection doesn't bottleneck
+	var queue = async.queue(function(task, callback) {
+		upload(task.data, task.path, task.options)
+		.then(function(url) { task.url = url; })
+		.nodeify(callback);
+	}, 3);
+
+	var pushToQueue = Promise.promisify(queue.push, queue);
+
+	// standard upload method
+	function upload(data, filepath, options) {
 		options = options || {};
 		var s3 = options.client || client;
 
@@ -61,10 +59,21 @@ module.exports = function() {
 		});
 	}
 
-	// file upload queue so S3 connection doesn't bottleneck
-	var queue = files.queue = async.queue(function(task, callback) {
-		upload(task.data, task.path, task.options)
-		.then(function(url) { task.url = url; })
-		.nodeify(callback);
-	}, 3);
+	// vanity method for choosing queue or straight upload
+	var api = this.uploadToS3 = function(data, filepath, options) {
+		if (options && options.queue === false) return upload.apply(null, arguments);
+
+		var task = {
+			data: data,
+			path: filepath,
+			options: options
+		};
+
+		return pushToQueue(task).then(function() {
+			return task.url;
+		});
+	}
+
+	// attach knox client for access
+	_.extend(api, { knox: client });
 }
