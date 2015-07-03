@@ -6,7 +6,11 @@ module.exports = function() {
 	if (this.knox) return;
 
 	var knox_opts = this.get("s3") || this.get("files.s3");
-	if (!knox_opts) throw new Error("Missing S3 configuration.");
+
+	if (!knox_opts) {
+		if (knox_opts == null) this.log.warn('Missing S3 configuration.');
+		return;
+	}
 
 	// create a knox client form options
 	var client = this.knox = knox.createClient(knox_opts);
