@@ -3,7 +3,7 @@
 This is an S3 upload adaptor for Appcore files. It allows file data to be saved at any arbitrary path in an S3 bucket.
 
 ```js
-app.use(require("@beneaththeink/appcore-s3"));
+app.use(require("appcore-s3"));
 
 // later
 app.ready(function() {
